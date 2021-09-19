@@ -1,0 +1,196 @@
+STEP 4:
+// sys161 kernel output
+sys161: System/161 release 2.0.3, compiled Aug 10 2015 13:31:07
+
+OS/161 base system version 1.99.08
+Copyright (c) 2000, 2001-2005, 2008-2011, 2013, 2014
+   President and Fellows of Harvard College.  All rights reserved.
+
+Put-your-group-name-here's system version 0 (DUMBVM #1)
+
+292k physical memory available
+Device probe...
+lamebus0 (system main bus)
+emu0 at lamebus0
+ltrace0 at lamebus0
+ltimer0 at lamebus0
+beep0 at ltimer0
+rtclock0 at ltimer0
+lrandom0 at lamebus0
+random0 at lrandom0
+lhd0 at lamebus0
+lhd1 at lamebus0
+lser0 at lamebus0
+con0 at lser0
+
+cpu0: MIPS/161 (System/161 2.x) features 0x0
+OS/161 kernel [? for menu]: 
+
+// git log output
+commit 0b76e3de1089bbd14db17cdda558b9df87e3a981 (HEAD -> master, tag: asst1-start, origin/master)
+Author: Jack Le <jle01@ssh-linux3.ece.ubc.ca>
+Date:   Fri Sep 17 17:57:22 2021 -0700
+
+    Initial commit of os161 for CPEN331
+
+// git tag output
+asst1-start
+
+
+STEP 5:
+// Question 1
+It depends on the type of exception. For UTLB exceptions, the first line is the mips_utlb_handler 
+in kern/arch/mips/locore/exception-mips1.S at line 68. Additionally, the first line for a general 
+exception is at mips_general_handler at line 86. They both jump to common_exception. On MIPS, 
+interrupts are just type of trap so there is no difference from a trap.
+
+// Question 2
+src/userland/lib/libc/arch/mips/syscalls-mips.S at line 84 (syscalls    /* make system call */).
+
+// Question 3
+These C functions are also utilized in kernel.
+
+// Question 4
+PLATFORM: target hardware platform
+MACHINE: target machine type
+Rerun if platform or machine want to run on a different hardware.
+
+// Question 5
+The assembly code is machine dependent because MIPS has an entirely different
+instruction set compared to other assembly languages therefore functions that
+require specific addresses will be machine dependent.
+
+It is good to keep it seperate so that if you want to use different hardware,
+you know exactly which code is machine dependent so you know what code needs to be 
+modified in accordance to your specific hardware.
+
+// Question 6
+37 uint32_ts which are each 4 bytes. 37 * 4 = 148 bytes. This is because there
+are 37 registers.
+
+// Question 7
+When you add new files to the system, the config file must be edited and rerun.
+
+// Question 8
+bmake depend should be ran after DUMBVM has been configured.
+
+// Question 9
+Ran after bmake depend. When code in kern is modified, then you must run bmake install.
+
+// Question 10
+In kern/main/menu.c you can add a simple cmd_helloworld function that prints "hello world".
+Additionally, an entry would needed to be added into the command table such as 
+{ "hw",		cmd_helloworld },
+Also, in the opsmenu, we would need to add an entry such as
+"[hw]       Print hello world",
+
+// Question 11
+The standard utilities could be different for different machines therefore, certain 
+commands would not be supported or implemented.
+
+// Question 12
+The return value of main is stored in v0. It is moved to s0 just in case exit() returns.
+Also moved to a0 so it's the argument to exit.
+
+// Question 13
+To add a new system call we would need to define a new call in kern/include/kern/syscall.h
+Next, if we added a new source file, we would need to reconfigure and run bmake depend, bmake,
+and bmake install.
+
+STEP 7:
+// Question 14
+The first function that executes when OS161 starts up is boot();
+Breakpoint 1, kmain (arguments=0x80035c20 "") at ../../main/main.c:211
+211             boot();
+
+// Question 15
+The first assembly instruction that executes is addiu sp, sp, -24
+__start () at ../../arch/sys161/main/start.S:54
+54         addiu sp, sp, -24
+
+// Question 16
+(gdb) info breakpoints
+Num     Type           Disp Enb Address    What
+1       breakpoint     keep y   0x800139e4 in kmain at ../../main/main.c:211
+2       breakpoint     keep y   0x80014a0c in menu at ../../main/menu.c:697
+
+// Question 17
+Set up stack frame. Set up exception handlers at the correct addresses.
+Flushes instruction cache. Initializes TLB. 
+
+// Question 18
+jal kmain
+
+// Question 19
+Breakpoint 1, kmain (arguments=0x80035c20 "") at ../../main/main.c:211
+211             boot();
+(gdb) s
+boot () at ../../main/main.c:99
+99              kprintf("\n");
+(gdb) n
+100             kprintf("OS/161 base system version %s\n", BASE_VERSION);
+(gdb) n
+101             kprintf("%s", harvard_copyright);
+(gdb) n
+102             kprintf("\n");
+(gdb) n
+104             kprintf("Put-your-group-name-here's system version %s (%s #%d)\n",
+(gdb) n
+106             kprintf("\n");
+(gdb) n
+109             ram_bootstrap();
+(gdb) n
+110             proc_bootstrap();
+(gdb) n
+111             thread_bootstrap();
+(gdb) n
+112             hardclock_bootstrap();
+(gdb) n
+113             vfs_bootstrap();
+(gdb) n
+114             kheap_nextgeneration();
+(gdb) n
+117             kprintf("Device probe...\n");
+(gdb) n
+118             KASSERT(curthread->t_curspl > 0);
+(gdb) n
+119             mainbus_bootstrap();
+(gdb) n
+120             KASSERT(curthread->t_curspl == 0);
+(gdb) n
+122             pseudoconfig();
+(gdb) n
+123             kprintf("\n");
+(gdb) n
+124             kheap_nextgeneration();
+
+// Question 20
+(gdb) p bootcpu
+$1 = (struct cpu *) 0x80000
+(gdb) p *bootcpu
+Cannot access memory at address 0x80000
+(gdb) p &bootcpu
+$2 = (struct cpu **) 0x80036fa8
+
+// Question 21
+(gdb) p &bootcpu
+$2 = (struct cpu **) 0x80036fa8
+(gdb) p *bootcpu
+Cannot access memory at address 0x80000
+(gdb) p bootcpu
+$3 = (struct cpu *) 0x80000
+
+(gdb) p *bootcpu
+No symbol "bootcpu" in current context.
+(gdb) p bootcpu
+No symbol "bootcpu" in current context.
+(gdb) p &bootcpu
+No symbol "bootcpu" in current context.
+
+// Question 22
+(gdb) p allcpus
+$1 = {arr = {v = 0x0, num = 0, max = 0}}
+
+// Question 23
+(gdb) p allcpus
+$3 = {arr = {v = 0x80039fe0, num = 1, max = 4}}
