@@ -165,27 +165,17 @@ boot () at ../../main/main.c:99
 124             kheap_nextgeneration();
 
 // Question 20
-(gdb) p bootcpu
-$1 = (struct cpu *) 0x80000
 (gdb) p *bootcpu
 Cannot access memory at address 0x80000
-(gdb) p &bootcpu
-$2 = (struct cpu **) 0x80036fa8
 
 // Question 21
-(gdb) p &bootcpu
-$2 = (struct cpu **) 0x80036fa8
 (gdb) p *bootcpu
-Cannot access memory at address 0x80000
-(gdb) p bootcpu
-$3 = (struct cpu *) 0x80000
-
-(gdb) p *bootcpu
-No symbol "bootcpu" in current context.
-(gdb) p bootcpu
-No symbol "bootcpu" in current context.
-(gdb) p &bootcpu
-No symbol "bootcpu" in current context.
+$1 = {c_self = 0x8003af00, c_number = 0, c_hardware_number = 0, c_curthread = 0x8003bf80, c_zombies = {tl_head = {tln_prev = 0x0, 
+      tln_next = 0x8003af1c, tln_self = 0x0}, tl_tail = {tln_prev = 0x8003af10, tln_next = 0x0, tln_self = 0x0}, tl_count = 0}, 
+  c_hardclocks = 0, c_spinlocks = 0, c_isidle = false, c_runqueue = {tl_head = {tln_prev = 0x0, tln_next = 0x8003af44, 
+      tln_self = 0x0}, tl_tail = {tln_prev = 0x8003af38, tln_next = 0x0, tln_self = 0x0}, tl_count = 0}, c_runqueue_lock = {
+    splk_lock = 0, splk_holder = 0x0}, c_ipi_pending = 0, c_shootdown = {{ts_placeholder = 0} <repeats 16 times>}, 
+  c_numshootdown = 0, c_ipi_lock = {splk_lock = 0, splk_holder = 0x0}}
 
 // Question 22
 (gdb) p allcpus
