@@ -99,13 +99,11 @@ and bmake install.
 
 STEP 7:
 // Question 14
-The first function that executes when OS161 starts up is boot();
-Breakpoint 1, kmain (arguments=0x80035c20 "") at ../../main/main.c:211
-211             boot();
+The first function that executes when OS161 starts up is kmain in kern/main/main.c
 
 // Question 15
-The first assembly instruction that executes is addiu sp, sp, -24
-__start () at ../../arch/sys161/main/start.S:54
+The first assembly instruction that executes is addiu sp, sp, -24 on line 54 of kern/arch/sys161/start.S
+
 54         addiu sp, sp, -24
 
 // Question 16
@@ -183,4 +181,4 @@ $1 = {arr = {v = 0x0, num = 0, max = 0}}
 
 // Question 23
 (gdb) p allcpus
-$3 = {arr = {v = 0x80039fe0, num = 1, max = 4}}
+$2 = {arr = {v = 0x80039fe0, num = 1, max = 4}}
