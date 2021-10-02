@@ -1,0 +1,47 @@
+STEP 2: CODE READING EXERCISES
+1. When a thread calls thread_exit();, the thread exits causing it to
+be removed from the process. It will then check the stack guard band
+and then it enters a zombie state. When it a thread is put to sleep,
+it enters a sleep state and yields to another process. It only regains
+control if wakeup is then called on the same channel.                   ////////////
+
+2. thread_switch() in src/kern/thread/thread.c handles context switch and
+inside the thread_switch function, switchframe_switch() does the switching.
+
+3. There are 4 different thread states:
+S_RUN: Threads that are running.
+S_READY: Threads that are ready to run but not running because they are 
+         new or are yielded.
+S_SLEEP: Threads that are sleeping.
+S_ZOMBIE: Threads that have exited but still need to be destroyed.
+
+4. When interrupts are turned off, it means that they are disabled and no
+interrupts can disturb the current thread. Interrupts are rejected when
+they are requested and the handler is not called. It is done by calling splhigh().
+This is done so that the context switches can be complete without any disruptions.
+
+5. Threads can wake each other up using threadlist_remhead(). threadlist_remhead()
+gets the next thread in the wait channel queue and makes it runnable using
+thread_make_runnable(), which puts it on a run queue.
+
+6. There are three functions that affect the run queue, thread_switch(), schedule(),
+and thread_consider_migration(). thread_switch() switches in the next thread on the 
+queue. schedule() reshuffles the run queue depending on job priority. thread_consider_migration() 
+moves threads across different CPUs if certain CPUs are less busy than others.
+
+7. thread_switch() selects the next thread on the run queue. schedule() selects
+in a round=robin fashion. thread_consider_migration() is called periodically from
+hardclock() and it moves threads from busy CPUs to CPUs that are less busy or idle. ///////
+
+8. schedule() and thread_consider_migration() are both called periodically by
+hardclock(). This way, each of them will absolutely run after a certain amount
+of time.
+
+9. wchan_sleep() and wchan_wakeone() are used so that when P() is called but
+the semaphore is occupied, it will sleep the current thread and put it on the
+wait channel. Once V() is called, it will wake a thread so that it can complete
+it's P().        ///////////////
+
+10. The implementation of wchan ensure this because in wchan_sleep(), the lock
+must be held by the thread and then another check is made so that no other locks 
+are held before the thread is placed into the sleep queue. //////////////
