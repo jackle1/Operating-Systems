@@ -48,6 +48,8 @@
 #include <current.h>
 #include <addrspace.h>
 #include <vnode.h>
+#include <limits.h>
+#include <proctable.h>
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
@@ -81,6 +83,12 @@ proc_create(const char *name)
 
 	/* VFS fields */
 	proc->p_cwd = NULL;
+    proc->pid = -1;
+    proc->parent_pid = -1;
+    proc->lock = lock_create("");
+    proc->exitcode = -1;
+    proc->exited = 0;
+    proc->exit_signal = cv_create("");
 
 	return proc;
 }
@@ -165,6 +173,13 @@ proc_destroy(struct proc *proc)
 		as_destroy(as);
 	}
 
+    if (proc->filetable) {
+        filetable_destroy(proc->filetable);
+    }
+
+    lock_destroy(proc->lock);
+    cv_destroy(proc->exit_signal);
+
 	threadarray_cleanup(&proc->p_threads);
 	spinlock_cleanup(&proc->p_lock);
 
@@ -216,6 +231,25 @@ proc_create_runprogram(const char *name)
 		VOP_INCREF(curproc->p_cwd);
 		newproc->p_cwd = curproc->p_cwd;
 	}
+
+    int result = filetable_init(newproc);
+    if (result) {
+        kprintf("file table init failed");
+        return NULL;
+    }
+
+    lock_acquire(proctable->lock);
+    pid_t curpid = proctable->pid;
+    proctable->pid++;
+    newproc->pid = curpid;
+    newproc->parent_pid = -1; /* no parent */
+    newproc->lock = lock_create("");
+    newproc->exited = 0;
+    newproc->exit_signal = cv_create("");
+    // newproc->exitcode = -1;
+    proctable->proc[curpid] = newproc;
+    lock_release(proctable->lock);
+
 	spinlock_release(&curproc->p_lock);
 
 	return newproc;

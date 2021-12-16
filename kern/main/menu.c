@@ -72,7 +72,7 @@ static
 void
 cmd_progthread(void *ptr, unsigned long nargs)
 {
-	char **args = ptr;
+    char **args = ptr;
 	char progname[128];
 	int result;
 
@@ -137,6 +137,11 @@ common_prog(int nargs, char **args)
 		return result;
 	}
 
+    int status = 0;
+    pid_t retval = 0;
+    /* block menu until first proc and all its children are done */
+    sys_waitpid(PID_MIN, &status, 0, &retval);
+    
 	/*
 	 * The new process will be destroyed when the program exits...
 	 * once you write the code for handling that.

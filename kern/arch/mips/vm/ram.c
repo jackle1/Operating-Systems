@@ -131,6 +131,15 @@ ram_getsize(void)
 }
 
 /*
+ * returns first free address
+ */
+paddr_t
+ram_getfirst(void)
+{
+    return firstpaddr;
+}
+
+/*
  * This function is intended to be called by the VM system when it
  * initializes in order to find out what memory it has available to
  * manage.

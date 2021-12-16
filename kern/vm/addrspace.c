@@ -30,6 +30,11 @@
 #include <types.h>
 #include <kern/errno.h>
 #include <lib.h>
+#include <spl.h>
+#include <spinlock.h>
+#include <proc.h>
+#include <current.h>
+#include <mips/tlb.h>
 #include <addrspace.h>
 #include <vm.h>
 
@@ -49,9 +54,12 @@ as_create(void)
 		return NULL;
 	}
 
-	/*
-	 * Initialize as needed.
-	 */
+    as->stack_base = 0;
+    as->stack_end = 0;
+    as->heap_base = 0;
+    as->heap_end = 0;
+    as->ptable = NULL;
+    as->first_region = NULL;
 
 	return as;
 }
@@ -65,23 +73,35 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 	if (newas==NULL) {
 		return ENOMEM;
 	}
+    *ret = newas;
 
-	/*
-	 * Write this.
-	 */
-
+    /* Unimplemented */
 	(void)old;
-
-	*ret = newas;
 	return 0;
 }
 
 void
 as_destroy(struct addrspace *as)
 {
-	/*
-	 * Clean up as needed.
-	 */
+    struct page_entry *cur_page = as->ptable->first_entry;
+    struct page_entry *tmp_page;
+    lock_destroy(as->ptable->lock);
+	while (cur_page) {
+        tmp_page = cur_page->next_page;
+        cur_page->next_page = NULL;
+        kfree(cur_page);
+        cur_page = tmp_page;
+    }
+
+    struct region *cur_region = as->first_region;
+    struct region *tmp_region;
+	while (cur_region) {
+        tmp_region = cur_region->next_region;
+        lock_destroy(cur_region->lock);
+        cur_region->next_region = NULL;
+        kfree(cur_region);
+        cur_region = tmp_region;
+    }
 
 	kfree(as);
 }
@@ -89,9 +109,11 @@ as_destroy(struct addrspace *as)
 void
 as_activate(void)
 {
+    /* Function from DUMBVM */
+    int i, spl;
 	struct addrspace *as;
 
-	as = curproc_getas();
+	as = proc_getas();
 	if (as == NULL) {
 		/*
 		 * Kernel thread without an address space; leave the
@@ -100,19 +122,20 @@ as_activate(void)
 		return;
 	}
 
-	/*
-	 * Write this.
-	 */
+    /* Disable interrupts on this CPU while frobbing the TLB. */
+	spl = splhigh();
+
+	for (i=0; i<NUM_TLB; i++) {
+		tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
+	}
+
+	splx(spl);
 }
 
 void
 as_deactivate(void)
 {
-	/*
-	 * Write this. For many designs it won't need to actually do
-	 * anything. See proc.c for an explanation of why it (might)
-	 * be needed.
-	 */
+	/* Nothing */
 }
 
 /*
@@ -129,26 +152,36 @@ int
 as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
 		 int readable, int writeable, int executable)
 {
-	/*
-	 * Write this.
-	 */
+    struct region new_region;
 
-	(void)as;
-	(void)vaddr;
-	(void)sz;
-	(void)readable;
-	(void)writeable;
-	(void)executable;
-	return EUNIMP;
+    sz += vaddr & ~(vaddr_t)PAGE_FRAME;
+	vaddr &= PAGE_FRAME;
+	sz = (sz + PAGE_SIZE - 1) & PAGE_FRAME;
+
+    /* Initialize region values */
+    new_region.region_base = vaddr;
+    new_region.region_end = vaddr + sz - 1;
+    new_region.npages = sz / PAGE_SIZE;
+    new_region.next_region = NULL;
+    new_region.readable = readable;
+    new_region.writeable = writeable;
+    new_region.executable = executable;
+    new_region.lock = lock_create("");
+
+    /* Set first empty region spot to new region */
+    struct region *cur_region = as->first_region;
+    while (cur_region) {
+        cur_region = cur_region->next_region;
+    }
+    *cur_region = new_region;
+
+	return 0;
 }
 
 int
 as_prepare_load(struct addrspace *as)
 {
-	/*
-	 * Write this.
-	 */
-
+	/* Unimplemented */
 	(void)as;
 	return 0;
 }
@@ -156,10 +189,7 @@ as_prepare_load(struct addrspace *as)
 int
 as_complete_load(struct addrspace *as)
 {
-	/*
-	 * Write this.
-	 */
-
+    /* Unimplemented */
 	(void)as;
 	return 0;
 }
@@ -167,15 +197,10 @@ as_complete_load(struct addrspace *as)
 int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
-	/*
-	 * Write this.
-	 */
-
-	(void)as;
-
 	/* Initial user-level stack pointer */
 	*stackptr = USERSTACK;
 
+    /* Unimplemented */
+    (void)as;
 	return 0;
 }
-

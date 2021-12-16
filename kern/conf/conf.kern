@@ -84,7 +84,7 @@
 #       specified is enabled. Source files added with optofffile are
 #       compiled in if the option specified is not enabled.
 #
-#       Additionally, a file "opt-optname.h" is created in the compile
+#       Additionally, a file "opt-optname" is created in the compile
 #       directory, which defines a C preprocessor symbol OPT_OPTNAME.
 #       This symbol is #defined to either 0 or 1 in the logical way.
 #       Thus, you can have small bits of code that are enabled or
@@ -338,6 +338,7 @@ file      proc/proc.c
 #
 
 file      vm/kmalloc.c
+file      vm/vm.c
 
 optofffile dumbvm   vm/addrspace.c
 
@@ -367,6 +368,19 @@ file      vfs/vnode.c
 
 file      vfs/devnull.c
 
+
+#
+# Filetable
+#
+
+file      filetable/filetable.c
+
+#
+# Proccess table
+#
+
+file      proctable/proctable.c
+
 #
 # System call layer
 # (You will probably want to add stuff here while doing the basic system
@@ -376,6 +390,9 @@ file      vfs/devnull.c
 file      syscall/loadelf.c
 file      syscall/runprogram.c
 file      syscall/time_syscalls.c
+file      syscall/file_syscalls.c
+file      syscall/proc_syscalls.c
+file      syscall/mem_syscalls.c
 
 #
 # Startup and initialization

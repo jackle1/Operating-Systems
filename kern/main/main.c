@@ -49,6 +49,7 @@
 #include <syscall.h>
 #include <test.h>
 #include <version.h>
+#include <proctable.h>
 #include "autoconf.h"  // for pseudoconfig
 
 
@@ -107,6 +108,7 @@ boot(void)
 
 	/* Early initialization. */
 	ram_bootstrap();
+    proctable_bootstrap();
 	proc_bootstrap();
 	thread_bootstrap();
 	hardclock_bootstrap();
@@ -210,7 +212,8 @@ kmain(char *arguments)
 {
 	boot();
 
-	menu(arguments);
+    menu(arguments);
+
 
 	/* Should not get here */
 }

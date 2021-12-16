@@ -67,6 +67,8 @@
  */
 #define PADDR_TO_KVADDR(paddr) ((paddr)+MIPS_KSEG0)
 
+#define KVADDR_TO_PADDR(vaddr) ((vaddr)-MIPS_KSEG0)
+
 /*
  * The top of user space. (Actually, the address immediately above the
  * last valid user address.)
@@ -108,6 +110,7 @@
 void ram_bootstrap(void);
 paddr_t ram_stealmem(unsigned long npages);
 paddr_t ram_getsize(void);
+paddr_t ram_getfirst(void);
 paddr_t ram_getfirstfree(void);
 
 /*

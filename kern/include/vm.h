@@ -44,6 +44,35 @@
 #define VM_FAULT_WRITE       1    /* A write was attempted */
 #define VM_FAULT_READONLY    2    /* A write to a readonly page was attempted*/
 
+struct coremap_entry {
+    // vaddr_t vaddr;                      /* physical address of this block */
+    int freecount;                  /* 0 for free */
+    int block_start;                /* determines if entry is start of block */
+    int block_end;                  /* determines if entry is end of block */
+};
+
+struct page_table {
+    struct page_entry *first_entry;
+    struct lock *lock;              /* lock for this structure */
+};
+
+/* structure to keep track of page table */
+struct page_entry {
+    vaddr_t as_vaddr;               /* start virtual address */
+    paddr_t as_paddr;               /* start physical address */
+    struct page_entry *next_page;   /* linked list structure */
+};
+
+struct region {
+    vaddr_t region_base;            /* base of this region */
+    vaddr_t region_end;             /* end of region */
+    size_t npages;                  /* number of pages in region */
+    int readable;
+    int writeable;
+    int executable;
+    struct region *next_region;     /* linked list structure */
+    struct lock *lock;
+};
 
 /* Initialization function */
 void vm_bootstrap(void);

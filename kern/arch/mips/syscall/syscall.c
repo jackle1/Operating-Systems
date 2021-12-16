@@ -28,13 +28,16 @@
  */
 
 #include <types.h>
+#include <syscall.h>
 #include <kern/errno.h>
 #include <kern/syscall.h>
 #include <lib.h>
 #include <mips/trapframe.h>
 #include <thread.h>
 #include <current.h>
-#include <syscall.h>
+#include <filetable.h>
+#include <copyinout.h>
+#include <proc.h>
 
 
 /*
@@ -80,7 +83,9 @@ syscall(struct trapframe *tf)
 {
 	int callno;
 	int32_t retval;
-	int err;
+	int32_t retval2;
+    int whence;
+	int err = 0;
 
 	KASSERT(curthread != NULL);
 	KASSERT(curthread->t_curspl == 0);
@@ -98,6 +103,7 @@ syscall(struct trapframe *tf)
 	 */
 
 	retval = 0;
+	retval2 = 0;
 
 	switch (callno) {
 	    case SYS_reboot:
@@ -110,6 +116,65 @@ syscall(struct trapframe *tf)
 		break;
 
 	    /* Add stuff here */
+		case SYS_open:
+		err = sys_open((const char *) tf->tf_a0, (int) tf->tf_a1, &retval);
+		break;
+
+		case SYS_read:
+		err = sys_read((int)tf->tf_a0, (void *)tf->tf_a1, (size_t)tf->tf_a2, &retval);
+		break;
+
+		case SYS_write:
+		err = sys_write((int)tf->tf_a0, (const void *)tf->tf_a1, (size_t)tf->tf_a2, &retval);
+		break;
+
+		case SYS_lseek:
+		whence = 0; /*seek relative to beginning of file*/
+		off_t *seek = (off_t *) &tf->tf_a2; /*a1 not used since seek is 64 bits*/
+		copyin((const_userptr_t) tf->tf_sp+16, &whence, sizeof(int)); /*ran out of registers so fetch further arguments from sp+16 using copyin()*/
+		err = sys_lseek((int)tf->tf_a0, *seek, whence, &retval, &retval2);
+		break;
+
+		case SYS_close:
+		err = sys_close((int)tf->tf_a0, &retval);
+		break;
+
+		case SYS_dup2:
+		err = sys_dup2((int)tf->tf_a0, (int)tf->tf_a1, &retval);
+		break;
+
+		case SYS_chdir:
+		err = sys_chdir((const char *)tf->tf_a0, &retval);
+		break;
+
+		case SYS___getcwd:
+		err = sys___getcwd((char *)tf->tf_a0, (size_t)tf->tf_a1, &retval);
+		break;
+
+        case SYS_fork:
+        err = sys_fork(tf, (pid_t*)&retval);
+        break;
+
+        case SYS_waitpid:
+        err = sys_waitpid((pid_t) tf->tf_a0, (int *)tf->tf_a1, (int)tf->tf_a2,
+                        (pid_t*)&retval);
+        break;
+
+        case SYS_getpid:
+        err = sys_getpid((pid_t*)&retval);
+        break;
+
+        case SYS__exit:
+        sys__exit((int)tf->tf_a0);
+        break;
+
+		case SYS_execv:
+		err = sys_execv((const char *) tf->tf_a0, (char **) tf->tf_a1);
+		break;
+
+        case SYS_sbrk:
+		err = sys_sbrk((intptr_t) tf->tf_a0, (void *) &retval);
+		break;
 
 	    default:
 		kprintf("Unknown syscall %d\n", callno);
@@ -128,8 +193,8 @@ syscall(struct trapframe *tf)
 		tf->tf_a3 = 1;      /* signal an error */
 	}
 	else {
-		/* Success. */
 		tf->tf_v0 = retval;
+        tf->tf_v1 = retval2; /* second return register to reg v1 */
 		tf->tf_a3 = 0;      /* signal no error */
 	}
 
@@ -148,14 +213,16 @@ syscall(struct trapframe *tf)
 
 /*
  * Enter user mode for a newly forked process.
- *
- * This function is provided as a reminder. You need to write
- * both it and the code that calls it.
- *
- * Thus, you can trash it and do things another way if you prefer.
  */
 void
-enter_forked_process(struct trapframe *tf)
+enter_forked_process(void *tf_new, unsigned long nargs)
 {
-	(void)tf;
+    struct trapframe *tf = (struct trapframe*)tf_new;
+    struct trapframe tf_stack;
+    memcpy(&tf_stack, tf, sizeof(struct trapframe));
+    tf_stack.tf_v0 = 0;
+    tf_stack.tf_a3 = 0;
+    tf_stack.tf_epc += 4;
+    (void) nargs;
+	mips_usermode(&tf_stack);
 }

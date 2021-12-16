@@ -38,6 +38,8 @@
 
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */
+#include <filetable.h>
+#include <proctable.h>
 
 struct addrspace;
 struct vnode;
@@ -56,7 +58,16 @@ struct proc {
 	/* VFS */
 	struct vnode *p_cwd;		/* current working directory */
 
-	/* add more material here as needed */
+    /* filetable */
+    struct filetable *filetable; /* file table stores state of files open */
+
+    /* keep track of pids */
+    pid_t pid;                   /* this process pid */
+    pid_t parent_pid;            /* pid of parent this process was forked from */
+    struct lock *lock;           /* lock for this structure */
+    int exitcode;                /* exitcode */
+    int exited;                  /* 1 if exited 0 if not exited yet */
+    struct cv *exit_signal;      /* condition variable signals when exiting */
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */

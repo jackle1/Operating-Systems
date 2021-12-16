@@ -39,6 +39,9 @@
 #include <vm.h>
 #include <mainbus.h>
 #include <syscall.h>
+#include <kern/wait.h>
+#include <proctable.h>
+#include <synch.h>
 
 
 /* in exception-*.S */
@@ -81,40 +84,59 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
 	    case EX_IBE:
 	    case EX_DBE:
 	    case EX_SYS:
-		/* should not be seen */
-		KASSERT(0);
-		sig = SIGABRT;
-		break;
-	    case EX_MOD:
-	    case EX_TLBL:
-	    case EX_TLBS:
-		sig = SIGSEGV;
-		break;
-	    case EX_ADEL:
-	    case EX_ADES:
-		sig = SIGBUS;
-		break;
-	    case EX_BP:
-		sig = SIGTRAP;
-		break;
-	    case EX_RI:
-		sig = SIGILL;
-		break;
-	    case EX_CPU:
-		sig = SIGSEGV;
-		break;
+    		/* should not be seen */
+    		KASSERT(0);
+    		sig = SIGABRT;
+    		break;
+        case EX_MOD:
+        case EX_TLBL:
+        case EX_TLBS:
+    		sig = SIGSEGV;
+    		break;
+        case EX_ADEL:
+        case EX_ADES:
+    		sig = SIGBUS;
+    		break;
+        case EX_BP:
+    		sig = SIGTRAP;
+    		break;
+        case EX_RI:
+    		sig = SIGILL;
+    		break;
+        case EX_CPU:
+    		sig = SIGSEGV;
+    		break;
 	    case EX_OVF:
-		sig = SIGFPE;
-		break;
+    		sig = SIGFPE;
+    		break;
 	}
 
-	/*
-	 * You will probably want to change this.
-	 */
-
-	kprintf("Fatal user mode trap %u sig %d (%s, epc 0x%x, vaddr 0x%x)\n",
+    kprintf("Fatal user mode trap %u sig %d (%s, epc 0x%x, vaddr 0x%x)\n",
 		code, sig, trapcodenames[code], epc, vaddr);
-	panic("I don't know how to handle this\n");
+
+    lock_acquire(proctable->lock);
+    lock_acquire(curproc->lock);
+    struct proc *exit_proc = curproc;
+    pid_t exit_pid = exit_proc->pid;
+
+    exit_proc->exitcode = _MKWAIT_SIG(sig);
+    exit_proc->exited = 1;
+    cv_broadcast(exit_proc->exit_signal, proctable->lock);
+    if (exit_proc->parent_pid >= 0) {
+        if (proctable->proc[exit_proc->parent_pid]) {
+            if (!proctable->proc[exit_proc->parent_pid]->exited) {
+                cv_wait(proctable->proc[exit_proc->parent_pid]->exit_signal,
+                        proctable->lock);
+            }
+        }
+    }
+
+    proctable->proc[exit_pid] = NULL;
+
+    lock_release(proctable->lock);
+    lock_release(curproc->lock);
+
+    thread_proc_exit(exit_proc);
 }
 
 /*
